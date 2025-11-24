@@ -9,7 +9,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
-@Threads(1)
 @Warmup(iterations = 1)
 @BenchmarkMode(Mode.SingleShotTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
@@ -17,13 +16,13 @@ public class HttpCallBenchmarks {
 
 
     @Benchmark
-    public void sequentialCalls(Blackhole blackhole) {
+    public void sequential(Blackhole blackhole) {
         blackhole.consume(invoke());
         blackhole.consume(invoke());
     }
 
     @Benchmark
-    public void concurrentCalls(Blackhole blackhole) throws InterruptedException {
+    public void concurrent(Blackhole blackhole) throws InterruptedException {
         final var th1 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
         final var th2 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
         th1.join();
@@ -31,7 +30,7 @@ public class HttpCallBenchmarks {
     }
 
     @Benchmark
-    public void parallelCalls(Blackhole blackhole) throws InterruptedException {
+    public void parallel(Blackhole blackhole) throws InterruptedException {
         final var th1 = new Thread(() -> blackhole.consume(invoke()));
         final var th2 = new Thread(() -> blackhole.consume(invoke()));
         th1.start();

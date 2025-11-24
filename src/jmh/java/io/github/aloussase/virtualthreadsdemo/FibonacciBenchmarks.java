@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 // Virtual threads cannot be woken up when all carrier threads are busy
 // If my CPU has 4 cores, then at most 4 virtual threads can be running at the same time.
 // Performance in VTs comes from cooperatively yielding while waiting for IO.
-@Threads(4)
 @Warmup(iterations = 1)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @BenchmarkMode(Mode.SingleShotTime)
@@ -20,6 +19,7 @@ public class FibonacciBenchmarks {
      * Number of iterations.
      */
     private final static int N = 100_000_000;
+    //private final static int N = 100_000;
 
     @Benchmark
     public void sequential(Blackhole blackhole) {
