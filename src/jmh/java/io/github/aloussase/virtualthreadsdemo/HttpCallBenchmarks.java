@@ -7,6 +7,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Warmup(iterations = 1)
@@ -23,20 +24,22 @@ public class HttpCallBenchmarks {
 
     @Benchmark
     public void concurrent(Blackhole blackhole) throws InterruptedException {
-        final var th1 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
-        final var th2 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
-        th1.join();
-        th2.join();
+        try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.shutdown();
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
     }
 
     @Benchmark
     public void parallel(Blackhole blackhole) throws InterruptedException {
-        final var th1 = new Thread(() -> blackhole.consume(invoke()));
-        final var th2 = new Thread(() -> blackhole.consume(invoke()));
-        th1.start();
-        th2.start();
-        th1.join();
-        th2.join();
+        try (var exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.shutdown();
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
     }
 
 
