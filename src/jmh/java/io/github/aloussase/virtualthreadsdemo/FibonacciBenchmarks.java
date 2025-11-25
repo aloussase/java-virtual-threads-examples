@@ -3,6 +3,7 @@ package io.github.aloussase.virtualthreadsdemo;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
@@ -18,8 +19,8 @@ public class FibonacciBenchmarks {
     /**
      * Number of iterations.
      */
-    private final static int N = 100_000_000;
-    //private final static int N = 100_000;
+//    private final static int N = 100_000_000;
+    private final static int N = 100_000;
 
     @Benchmark
     public void sequential(Blackhole blackhole) {
@@ -29,20 +30,22 @@ public class FibonacciBenchmarks {
 
     @Benchmark
     public void concurrent(Blackhole blackhole) throws InterruptedException {
-        final var th1 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
-        final var th2 = Thread.ofVirtual().start(() -> blackhole.consume(invoke()));
-        th1.join();
-        th2.join();
+        try (var exec = Executors.newVirtualThreadPerTaskExecutor()) {
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.shutdown();
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
     }
 
     @Benchmark
     public void parallel(Blackhole blackhole) throws InterruptedException {
-        final var th1 = new Thread(() -> blackhole.consume(invoke()));
-        final var th2 = new Thread(() -> blackhole.consume(invoke()));
-        th1.start();
-        th2.start();
-        th1.join();
-        th2.join();
+        try (var exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.submit(() -> blackhole.consume(invoke()));
+            exec.shutdown();
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        }
     }
 
     private int invoke() {
